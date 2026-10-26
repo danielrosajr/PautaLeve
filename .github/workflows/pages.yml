@@ -1,0 +1,46 @@
+name: Publicar Pré-Sessão no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+      - name: Usar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Executar testes locais sem dependências
+        run: node --test tests/*.test.js
+      - name: Preparar artefatos estáticos
+        run: |
+          mkdir -p _site
+          cp index.html favicon.svg privacy.html _site/
+          cp -R src public _site/
+          touch _site/.nojekyll
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+      - name: Enviar site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Publicar site
+        id: deployment
+        uses: actions/deploy-pages@v4
